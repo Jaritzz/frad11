@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1d36">
+  <title>Resultados · Campeonato Regional de Rally FRAD 11</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/estilos.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="js/comun.js"></script>
+  <script src="js/clasificacion.js"></script>
+</head>
+<body>
+  <script>document.write(encabezado(`<nav class="nav"><a href="index.html">← Todas las fechas</a></nav>`, true));</script>
+  <main>
+    <section class="heroe evento-heroe"><div class="contenedor ancho" id="cabecera"></div></section>
+    <div class="selector"><div class="contenedor ancho"><div id="etapas" class="pestanas" role="tablist"></div></div></div>
+    <div class="contenedor ancho">
+      <div id="pruebas" class="pruebas-tira" role="tablist"></div>
+      <div class="barra-filtros">
+        <h2 id="titulo-vista" class="titulo-vista"></h2>
+        <label class="etiqueta" id="filtro-clase" hidden>Clase
+          <select id="clase"></select>
+        </label>
+      </div>
+      <div id="tabla" class="tabla-env"><div class="vacio">Cargando tiempos…</div></div>
+    </div>
+  </main>
+  <script>document.write(pie(true));</script>
+
+  <script>
+    const eventoId = parametro("id");
+    // etapa = null (general) o id de etapa; prueba = null (total de la etapa) o id de prueba.
+    const estado = { etapa: null, prueba: null, clase: "" };
+    let evento = null, etapas = [], filas = [];
+
+    async function cargar() {
+      const [ev, res] = await Promise.all([
+        evento ? Promise.resolve({ data: evento }) :
+          db.from("eventos").select("nombre,fecha_desde,fecha_hasta,logo_url").eq("id", eventoId).single(),
+        db.rpc("resultados", { p_evento_id: eventoId }),
+      ]);
+      if (ev.error || !ev.data) {
+        document.getElementById("tabla").innerHTML = `<div class="vacio">No se encontró la fecha.</div>`;
+        return;
+      }
+      evento = ev.data;
+      filas = res.data || [];
+      armarEtapas();
+      dibujarTodo();
+    }
+
+    function armarEtapas() {
+      const m = new Map();
+      for (const f of filas) {
+        if (!m.has(f.etapa_id)) m.set(f.etapa_id, { id: f.etapa_id, nombre: f.etapa, orden: f.etapa_orden, pruebas: new Map() });
+        m.get(f.etapa_id).pruebas.set(f.prueba_id, { id: f.prueba_id, nombre: f.prueba, orden: f.prueba_orden });
+      }
+      const porOrden = (a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es", { numeric: true });
+      etapas = [...m.values()].sort(porOrden).map((e) => ({ ...e, pruebas: [...e.pruebas.values()].sort(porOrden) }));
+    }
+
+    function dibujarTodo() {
+      document.title = evento.nombre + " · FRAD 11";
+      document.getElementById("cabecera").innerHTML = `
+        ${evento.logo_url ? `<div class="logo-caja"><img src="${esc(evento.logo_url)}" alt=""></div>` : ""}
+        <div>
+          <div class="antetitulo">Campeonato Regional de Rally · FRAD 11</div>
+          <h1>${esc(evento.nombre)}</h1>
+          <div class="datos">
+            ${evento.fecha_desde ? `<span class="chip-fecha">${esc(fmtFechas(evento.fecha_desde, evento.fecha_hasta))}</span>` : ""}
+          </div>
+        </div>`;
+
+      const pestana = (txt, sel, onclick) =>
+        `<button class="pestana" role="tab" aria-selected="${sel}" onclick="${onclick}">${esc(txt)}</button>`;
+      document.getElementById("etapas").innerHTML =
+        pestana("General", estado.etapa === null, "elegir(null,null)") +
+        etapas.map((e) => pestana(e.nombre, estado.etapa === e.id, `elegir('${e.id}',null)`)).join("");
+
+      const etapa = etapas.find((e) => e.id === estado.etapa);
+      const tarjeta = (chico, grande, sel, onclick) =>
+        `<button class="prueba-tarjeta" role="tab" aria-selected="${sel}" onclick="${onclick}"><small>${esc(chico)}</small><strong>${esc(grande)}</strong></button>`;
+      document.getElementById("pruebas").innerHTML = etapa
+        ? tarjeta(etapa.nombre, "Total etapa", estado.prueba === null, `elegir('${etapa.id}',null)`) +
+          etapa.pruebas.map((p) => tarjeta("Prueba", p.nombre, estado.prueba === p.id, `elegir('${etapa.id}','${p.id}')`)).join("")
+        : "";
+
+      const prueba = etapa?.pruebas.find((p) => p.id === estado.prueba);
+      document.getElementById("titulo-vista").innerHTML = !etapa
+        ? `<small>Clasificación</small>General`
+        : prueba ? `<small>${esc(etapa.nombre)}</small>${esc(prueba.nombre)}`
+        : `<small>Clasificación</small>${esc(etapa.nombre)}`;
+
+      const clases = [...new Set(filas.map((f) => f.clase))].sort((a, b) => a.localeCompare(b, "es", { numeric: true }));
+      document.getElementById("filtro-clase").hidden = clases.length < 2;
+      document.getElementById("clase").innerHTML = `<option value="">Todas</option>` +
+        clases.map((c) => `<option ${c === estado.clase ? "selected" : ""}>${esc(c)}</option>`).join("");
+
+      dibujarTabla(etapa);
+    }
+
+    function dibujarTabla(etapa) {
+      const cont = document.getElementById("tabla");
+      if (!etapas.length) { cont.innerHTML = `<div class="vacio">Todavía no hay pruebas cargadas.</div>`; return; }
+      const ids = estado.prueba ? [estado.prueba]
+        : etapa ? etapa.pruebas.map((p) => p.id)
+        : etapas.flatMap((e) => e.pruebas.map((p) => p.id));
+      const { clasificados, fuera, totalPruebas } = clasificar(filas, ids, estado.clase);
+      if (!clasificados.length && !fuera.length) {
+        cont.innerHTML = `<div class="vacio">Todavía no hay tiempos${estado.clase ? " en esta clase" : ""}.</div>`;
+        return;
+      }
+      const tripulacion = (r) => `${esc(r.piloto)}${r.navegante ? `<small>${esc(r.navegante)}</small>` : ""}` +
+        `<small class="solo-movil">${chipClase(r.clase)} · ${esc(r.modelo)}</small>`;
+      const filaHtml = (r, pos, tiempo, dif1, claseFila) => `
+        <tr class="${claseFila}">
+          <td class="pos">${pos || ""}</td>
+          <td class="auto"><span class="placa">${esc(r.numero)}</span></td>
+          <td class="tripulacion">${tripulacion(r)}</td>
+          <td class="ocultar-movil">${chipClase(r.clase)}</td>
+          <td class="modelo ocultar-movil">${esc(r.modelo)}</td>
+          <td class="num penal ocultar-movil">${r.penal ? "+" + fmtTiempo(r.penal) : ""}</td>
+          <td class="num tiempo">${tiempo}${dif1 ? `<small class="solo-movil dif-movil">${dif1}</small>` : ""}${
+            r.penal ? `<small class="solo-movil penal-movil">Pen. +${fmtTiempo(r.penal)}</small>` : ""}</td>
+          <td class="num dif ocultar-movil">${dif1}</td>
+        </tr>`;
+      const cuerpo =
+        clasificados.map((r) => filaHtml(r, r.pos, fmtTiempo(r.total), fmtDiferencia(r.difPrimero),
+                                         r.pos <= 3 ? "p" + r.pos : "")).join("") +
+        fuera.map((r) => filaHtml(r, "", `<span class="estado ${r.motivo}">${esc(TEXTO_FUERA[r.motivo])}</span>`, "", "fuera")).join("");
+      cont.innerHTML = `
+        <table>
+          <thead><tr>
+            <th style="text-align:center">Pos</th><th>N.º</th><th>Piloto / Navegante</th><th class="ocultar-movil">Clase</th>
+            <th class="ocultar-movil">Auto</th><th class="num ocultar-movil">Penalización</th><th class="num">Tiempo</th>
+            <th class="num ocultar-movil">Dif. 1.º</th>
+          </tr></thead>
+          <tbody>${cuerpo}</tbody>
+        </table>`;
+    }
+
+    function elegir(etapa, prueba) {
+      estado.etapa = etapa;
+      estado.prueba = prueba;
+      dibujarTodo();
+    }
+    document.getElementById("clase").addEventListener("change", (e) => {
+      estado.clase = e.target.value;
+      dibujarTodo();
+    });
+
+    if (!eventoId) location.href = "index.html";
+    cargar();
+    setInterval(cargar, 60000);
+  </script>
+</body>
+</html>

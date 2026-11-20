@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0c1d36">
+  <title>Administración · Campeonato Regional de Rally FRAD 11</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/estilos.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script src="js/comun.js"></script>
+  <script src="js/clasificacion.js"></script>
+  <script src="js/importar.js"></script>
+</head>
+<body>
+  <script>document.write(encabezado(`
+    <span class="insignia">Panel de control</span>
+    <nav class="nav"><span id="usuario" class="marca-suave"></span>
+      <button id="salir" class="btn mini" hidden>Salir</button>
+      <a href="index.html">Ver web pública →</a></nav>`));</script>
+
+  <main class="contenedor">
+    <!-- Login -->
+    <section id="login" class="tarjeta login-caja" hidden>
+      <h2>Ingresar al panel</h2>
+      <form id="form-login">
+        <div class="fila"><label class="campo" style="flex:1">Email<input id="email" type="email" required autocomplete="username"></label></div>
+        <div class="fila"><label class="campo" style="flex:1">Contraseña<input id="clave" type="password" required autocomplete="current-password"></label></div>
+        <button class="btn primario" type="submit" style="width:100%;margin-top:6px">Ingresar</button>
+      </form>
+      <div id="aviso-login"></div>
+    </section>
+
+    <!-- Panel -->
+    <section id="panel" hidden>
+      <div class="barra-admin">
+        <div>
+          <div class="antetitulo">Fecha seleccionada</div>
+          <h1 id="titulo-evento">Panel</h1>
+        </div>
+        <div class="controles" style="margin:0">
+          <label class="etiqueta">Fecha <select id="sel-evento"></select></label>
+          <button class="btn primario" id="btn-nuevo-evento">+ Nueva fecha</button>
+        </div>
+      </div>
+      <div class="panel-pestanas">
+        <div class="pestanas" role="tablist">
+          <button class="pestana" data-sec="evento" aria-selected="true">Fecha y pruebas</button>
+          <button class="pestana" data-sec="inscriptos">Inscriptos</button>
+          <button class="pestana" data-sec="tiempos">Tiempos</button>
+          <button class="pestana" data-sec="anticipadas">Anticipadas</button>
+          <button class="pestana" data-sec="auditoria">Cambios</button>
+        </div>
+      </div>
+      <div id="aviso"></div>
+      <div id="seccion"></div>
+    </section>
+  </main>
+  <script>document.write(pie());</script>
+
+  <dialog id="dialogo"><form method="dialog" id="form-dialogo"></form></dialog>
+  <script src="js/admin.js"></script>
+</body>
+</html>

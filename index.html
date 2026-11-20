@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1d36">
+  <title>Campeonato Regional de Rally FRAD 11 · Resultados</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/estilos.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="js/comun.js"></script>
+</head>
+<body>
+  <script>document.write(encabezado(`<nav class="nav"><a href="index.html" class="activo">Resultados</a></nav>`));</script>
+  <main>
+    <section class="heroe">
+      <div class="contenedor">
+        <div class="antetitulo">FRAD 11 · Resultados oficiales</div>
+        <h1>Campeonato Regional <span class="contorno">de Rally</span></h1>
+        <div class="numero-grande">11</div>
+      </div>
+    </section>
+    <div class="contenedor">
+      <div class="titulo-seccion"><h2>Fechas</h2><span id="cantidad"></span></div>
+      <div id="eventos" class="eventos"><div class="vacio">Cargando fechas…</div></div>
+    </div>
+  </main>
+  <script>document.write(pie());</script>
+  <script>
+    (async () => {
+      const cont = document.getElementById("eventos");
+      const { data, error } = await db.from("eventos")
+        .select("id,nombre,fecha_desde,fecha_hasta,logo_url")
+        .order("fecha_desde", { ascending: false, nullsFirst: false });
+      if (error) { cont.innerHTML = `<div class="vacio">No se pudieron cargar las fechas.</div>`; return; }
+      if (!data.length) { cont.innerHTML = `<div class="vacio">Todavía no hay fechas publicadas.</div>`; return; }
+      document.getElementById("cantidad").textContent = data.length === 1 ? "1 fecha" : `${data.length} fechas`;
+      cont.innerHTML = data.map((ev) => `
+        <a class="evento" href="evento.html?id=${ev.id}">
+          ${ev.logo_url
+            ? `<div class="logo-caja"><img src="${esc(ev.logo_url)}" alt=""></div>`
+            : `<div class="logo-caja vacia"><span>FRAD 11</span></div>`}
+          <div class="info">
+            ${ev.fecha_desde ? `<span class="fecha">${esc(fmtFechas(ev.fecha_desde, ev.fecha_hasta))}</span>` : ""}
+            <h2>${esc(ev.nombre)}</h2>
+            <div class="ir">Ver resultados</div>
+          </div>
+        </a>`).join("");
+    })();
+  </script>
+</body>
+</html>
