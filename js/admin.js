@@ -86,7 +86,7 @@ async function cargarEventos(elegir) {
   estado.eventos = chequear(await db.from("eventos").select("*").order("fecha_desde", { ascending: false, nullsFirst: false }));
   const id = elegir || estado.evento?.id || estado.eventos[0]?.id;
   $("sel-evento").innerHTML = estado.eventos.length
-    ? estado.eventos.map((e) => `<option value="${e.id}" ${e.id === id ? "selected" : ""}>${esc(e.nombre)}</option>`).join("")
+    ? estado.eventos.map((e) => `<option value="${e.id}" ${e.id === id ? "selected" : ""}>${esc(e.nombre)}${e.abierta === false ? " (cerrada)" : ""}</option>`).join("")
     : `<option value="">(sin eventos)</option>`;
   await elegirEvento(id);
 }
@@ -115,6 +115,9 @@ $("btn-nuevo-evento").addEventListener("click", () => intentar(async () => {
     { id: "hasta", label: "Hasta", tipo: "date" },
   ], "Crear");
   if (!d || !d.nombre) return;
+  const abiertas = estado.eventos.filter((e) => e.abierta !== false);
+  if (abiertas.length && confirm(`¿Cerrar las fechas abiertas (${abiertas.map((e) => e.nombre).join(", ")}) para que la nueva quede como la fecha en curso?`))
+    chequear(await db.from("eventos").update({ abierta: false }).in("id", abiertas.map((e) => e.id)));
   const ev = chequear(await db.from("eventos").insert({
     nombre: d.nombre, fecha_desde: d.desde || null, fecha_hasta: d.hasta || d.desde || null,
   }).select().single());
@@ -144,7 +147,19 @@ function dibujar() {
 // ---------- sección: evento, etapas, pruebas, logo -----------------------------------------
 function dibujarEvento() {
   const ev = estado.evento;
+  const abierta = ev.abierta !== false;
   $("seccion").innerHTML = `
+    <div class="tarjeta">
+      <h2>Estado de la fecha</h2>
+      <div class="fila" style="align-items:center">
+        <span class="estado-fecha ${abierta ? "abierta" : "cerrada"}">${abierta ? "Abierta · en curso" : "Cerrada · finalizada"}</span>
+        <button class="btn ${abierta ? "" : "primario"}" onclick="intentar(()=>cambiarApertura(${!abierta}))">
+          ${abierta ? "Cerrar fecha" : "Reabrir fecha"}</button>
+      </div>
+      <p class="marca-suave">${abierta
+        ? "Abierta: aparece arriba en la web como fecha en curso y sus pruebas se pueden elegir en las apps de largada y llegada."
+        : "Cerrada: pasa a \"Fechas anteriores\" en la web (los resultados se siguen viendo) y deja de aparecer en las apps."}</p>
+    </div>
     <div class="tarjeta">
       <h2>Datos de la fecha</h2>
       <div class="fila">
@@ -202,6 +217,21 @@ async function guardarEvento() {
     chequear(await db.from("llegadas").update({ evento: nombre }).eq("evento", ev.nombre));
   }
   avisar("Fecha guardada.");
+  await cargarEventos(ev.id);
+}
+
+async function cambiarApertura(abrir) {
+  const ev = estado.evento;
+  if (!abrir) {
+    if (!confirm(`¿Cerrar "${ev.nombre}"?\n\nPasa a "Fechas anteriores" en la web y deja de aparecer en las apps de largada y llegada. Se puede reabrir cuando quieras.`)) return;
+  } else {
+    const otras = estado.eventos.filter((e) => e.id !== ev.id && e.abierta !== false);
+    if (otras.length && confirm(`Hay otras fechas abiertas: ${otras.map((e) => e.nombre).join(", ")}.\n\n¿Cerrarlas para que quede solo "${ev.nombre}" en curso?`)) {
+      chequear(await db.from("eventos").update({ abierta: false }).in("id", otras.map((e) => e.id)));
+    }
+  }
+  chequear(await db.from("eventos").update({ abierta: abrir }).eq("id", ev.id));
+  avisar(abrir ? "Fecha abierta." : "Fecha cerrada.");
   await cargarEventos(ev.id);
 }
 

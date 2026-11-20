@@ -144,6 +144,11 @@ footer.sitio .contenedor.ancho { padding: 22px 32px; }
   font-weight: 800; font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase;
 }
 .evento .ir::after { content: "→"; color: var(--naranja); font-size: 18px; transition: transform .2s; }
+.eventos.en-curso { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
+.eventos.en-curso .evento { border-top: 4px solid var(--naranja); }
+.eventos.en-curso .evento h2 { font-size: 22px; }
+.evento.cerrada .fecha { color: var(--suave); background: var(--arena); }
+@media (max-width: 720px) { .eventos.en-curso { grid-template-columns: 1fr; } }
 .evento:hover .ir::after { transform: translateX(4px); }
 
 /* ---------- cabecera de un rally ---------- */
@@ -156,6 +161,10 @@ footer.sitio .contenedor.ancho { padding: 22px 32px; }
 .evento-heroe h1 { font-size: clamp(26px, 4.4vw, 46px); margin-top: 10px; max-width: none; }
 .evento-heroe .contenedor > div:last-child { flex: 1; min-width: 260px; }
 .evento-heroe .datos { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+.chip-finalizada {
+  font-weight: 800; font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 2px; border: 1px solid rgba(255,255,255,.35); color: #dbe3ef;
+}
 .chip-fecha { font-weight: 700; font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; color: #dbe3ef; }
 .en-vivo {
   display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 2px;
@@ -345,6 +354,9 @@ dialog h2 { font-size: 18px; }
 dialog::backdrop { background: rgba(12, 29, 54, .55); }
 .logo-mini { height: 64px; max-width: 160px; object-fit: contain; border: 1px solid var(--linea); border-radius: var(--radio); padding: 6px; background: #fff; }
 
+.estado-fecha { font-weight: 800; font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; padding: 7px 12px; border-radius: 2px; }
+.estado-fecha.abierta { background: #e6f5ee; color: var(--verde); }
+.estado-fecha.cerrada { background: var(--arena); color: var(--suave); }
 .login-caja { max-width: 420px; margin: 56px auto; border-top: 5px solid var(--naranja); }
 .login-caja .bandera { display: none; }
 .barra-admin { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; justify-content: space-between; padding: 30px 0 18px; }

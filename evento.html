@@ -39,7 +39,7 @@
     async function cargar() {
       const [ev, res] = await Promise.all([
         evento ? Promise.resolve({ data: evento }) :
-          db.from("eventos").select("nombre,fecha_desde,fecha_hasta,logo_url").eq("id", eventoId).single(),
+          db.from("eventos").select("nombre,fecha_desde,fecha_hasta,logo_url,abierta").eq("id", eventoId).single(),
         db.rpc("resultados", { p_evento_id: eventoId }),
       ]);
       if (ev.error || !ev.data) {
@@ -71,6 +71,7 @@
           <h1>${esc(evento.nombre)}</h1>
           <div class="datos">
             ${evento.fecha_desde ? `<span class="chip-fecha">${esc(fmtFechas(evento.fecha_desde, evento.fecha_hasta))}</span>` : ""}
+            ${evento.abierta === false ? `<span class="chip-finalizada">Finalizada</span>` : ""}
           </div>
         </div>`;
 

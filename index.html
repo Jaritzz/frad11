@@ -21,33 +21,38 @@
         <div class="numero-grande">11</div>
       </div>
     </section>
-    <div class="contenedor">
-      <div class="titulo-seccion"><h2>Fechas</h2><span id="cantidad"></span></div>
-      <div id="eventos" class="eventos"><div class="vacio">Cargando fechas…</div></div>
-    </div>
+    <div class="contenedor" id="eventos"><div class="vacio">Cargando fechas…</div></div>
   </main>
   <script>document.write(pie());</script>
   <script>
     (async () => {
       const cont = document.getElementById("eventos");
       const { data, error } = await db.from("eventos")
-        .select("id,nombre,fecha_desde,fecha_hasta,logo_url")
+        .select("id,nombre,fecha_desde,fecha_hasta,logo_url,abierta")
         .order("fecha_desde", { ascending: false, nullsFirst: false });
       if (error) { cont.innerHTML = `<div class="vacio">No se pudieron cargar las fechas.</div>`; return; }
       if (!data.length) { cont.innerHTML = `<div class="vacio">Todavía no hay fechas publicadas.</div>`; return; }
-      document.getElementById("cantidad").textContent = data.length === 1 ? "1 fecha" : `${data.length} fechas`;
-      cont.innerHTML = data.map((ev) => `
-        <a class="evento" href="evento.html?id=${ev.id}">
+      const abiertas = data.filter((e) => e.abierta !== false);
+      const cerradas = data.filter((e) => e.abierta === false);
+      const seccion = (titulo, lista, extra = "") => !lista.length ? "" : `
+        <div class="titulo-seccion"><h2>${titulo}</h2><span>${lista.length === 1 ? "1 fecha" : lista.length + " fechas"}</span></div>
+        <div class="eventos ${extra}">${lista.map(tarjeta).join("")}</div>`;
+      cont.innerHTML = seccion("En curso", abiertas, "en-curso") + seccion("Fechas anteriores", cerradas);
+    })();
+
+    function tarjeta(ev) {
+      return `
+        <a class="evento ${ev.abierta === false ? "cerrada" : ""}" href="evento.html?id=${ev.id}">
           ${ev.logo_url
             ? `<div class="logo-caja"><img src="${esc(ev.logo_url)}" alt=""></div>`
             : `<div class="logo-caja vacia"><span>FRAD 11</span></div>`}
           <div class="info">
             ${ev.fecha_desde ? `<span class="fecha">${esc(fmtFechas(ev.fecha_desde, ev.fecha_hasta))}</span>` : ""}
             <h2>${esc(ev.nombre)}</h2>
-            <div class="ir">Ver resultados</div>
+            <div class="ir">${ev.abierta === false ? "Resultados finales" : "Ver resultados"}</div>
           </div>
-        </a>`).join("");
-    })();
+        </a>`;
+    }
   </script>
 </body>
 </html>
